@@ -17,13 +17,12 @@ src_pic = cv2.imread("blue.jpg")
 pic_w = src_pic.shape[1]
 pic_h = src_pic.shape[0]
 
-"""設置色彩取樣範圍  藍([0,40,0], [255,255,100])  白([200,200,200], [255,255,255])"""
-"""新版優化數值 並新增 back_mask 取樣範圍"""
+"""新版優化數值 白色取值幾乎完整 並新增 back_mask 取樣範圍"""
 BGRrange = [([0,40,0], [255,255,100]),
              ([190,190,180], [255,255,255]),
              ([0,40,0], [185,135,100])]
 
-"""迴圈採樣 利用inRange函數 分別取出 藍色遮罩 與  白色遮罩"""
+"""迴圈採樣 利用inRange函數 分別取出 藍色遮罩 與  白色遮罩  和  背景遮罩"""
 index = 0
 for (lower, upper) in BGRrange:
     
@@ -37,6 +36,37 @@ for (lower, upper) in BGRrange:
     elif index==2 :
         back_mask = cv2.inRange(src_pic, lower, upper)
     index+=1
+
+'''
+將back_mask 再做處理
+使用類濾波遮罩 建立過濾雜訊的bg_mask
+'''
+bg_mask = np.zeros([pic_h,pic_w], dtype="uint8")
+for ih in range(0,pic_h):
+    for iw in range(0,pic_w):
+        '''使用權值白&權值黑'''
+        price_w = 0
+        price_b = 0
+        '''迴圈取得黑白權值'''
+        for of_y in range(-1,1):
+            for of_x in range(-1,1):
+                if 0 <= ih+of_y < pic_h and 0 <= ih+of_x < pic_w :
+                    if back_mask[ih+of_y,iw+of_x] :
+                        price_w += 1
+                    else :
+                        price_b += 1
+        '''使用權值做出過濾'''
+        if  price_w < 4 :
+            bg_mask[ih,iw] = 0
+        else :
+            bg_mask[ih,iw] = 255
+            
+'''測試遮罩模樣                
+cv2.imshow("output-bg", bg_mask)
+cv2.imshow("output-bk", back_mask)
+key = cv2.waitKey(0)
+cv2.destroyAllWindows()
+'''
 
 """設置亮度線性變化  rate比率變化  plus固定變化"""
 bright_rate = 1
@@ -58,10 +88,17 @@ for ih in range(0,pic_h):
             
         if blue_mask[ih,iw] :
             if ih+1 < pic_h and iw+1 < pic_w :
+                ''' 
+                未建立濾波器前所使用的舊方法  使用4格範圍的取樣濾波過濾數值
                 if back_mask[ih,iw] and back_mask[ih+1,iw] and back_mask[ih+1,iw+1] and back_mask[ih,iw+1]:
                     src_pic[ih,iw] = 255
-                    
-                else:
+                '''
+                '''
+                新方法使用濾波器所建立的bg_mask遮罩做為過濾標準 方便控制參數
+                '''
+                if bg_mask[ih,iw] :
+                    src_pic[ih,iw] = 255   
+                else :
                     for i in range(0,3):
                         c = int(src_pic[ih,iw,i])
                         c = c*bright_rate+bright_plus
