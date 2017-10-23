@@ -5,6 +5,7 @@
 # Blue.jpg為原始圖檔(操作執行檔時可能遭覆蓋)
 # output.jpg為原始檔經過執行黨運作後的變化圖
 # hw2-plus#03.py為包含加分提的完整程式
+# 目錄HW#02_03內容為完整作業格式檔案
 output-4.jpg
 與
 output-f.jpg
