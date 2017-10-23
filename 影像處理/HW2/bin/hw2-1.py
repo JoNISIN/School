@@ -16,9 +16,9 @@ cpy_pic = cv2.imread("blue.jpg")
 pic_w = src_pic.shape[1]
 pic_h = src_pic.shape[0]
 
-BGRrange = [([0,40,0], [255,255,100]),
+BGRrange = [([0,40,0], [255,255,112]),
              ([190,190,180], [255,255,255]),
-             ([0,40,0], [185,135,100])]
+             ([0,40,0], [185,135,112])]
 
 index = 0
 for (lower, upper) in BGRrange:
@@ -36,8 +36,11 @@ for (lower, upper) in BGRrange:
 
 cv2.imshow("src", src_pic)
 cv2.imshow("mask_b", blue_mask)
+cv2.imwrite("mask_b.jpg",blue_mask)
 cv2.imshow("mask_w", white_mask)
+cv2.imwrite("mask_w.jpg",white_mask)
 cv2.imshow("mask_back", back_mask)
+cv2.imwrite("mask_back.jpg",back_mask)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 

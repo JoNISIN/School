@@ -9,7 +9,9 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 import sys
-
+"""
+鬆綁預設遞迴限制
+"""
 sys.setrecursionlimit(10000000)
 
 """設置原始圖片名稱"""
@@ -20,9 +22,6 @@ src_pic = cv2.imread("blue.jpg")
 pic_w = src_pic.shape[1]
 pic_h = src_pic.shape[0]
 
-'''
-以白色遮罩和已拜訪像素的bool map建立遞迴搜尋 查詢並回傳每個白色區塊面積
-'''
 vis_mask = np.zeros([pic_h,pic_w], dtype="uint8")
 def space_counter(boolmap,visitmap,in_x,in_y):
     counter = 0
@@ -38,19 +37,22 @@ def space_counter(boolmap,visitmap,in_x,in_y):
             return 0
     else :
         return 0
-
-'''
-以白色遮罩和已拜訪像素的bool map建立遞迴搜尋 更改一個白色區塊的顏色
-'''
+    
 def space_colorer(boolmap,visitmap,colormap,in_x,in_y):
+    counter = 0
     if 0<=in_x<pic_w and 0<=in_y<pic_h:
         if boolmap[in_y,in_x] and not visitmap[in_y,in_x] :
             visitmap[in_y,in_x] = 255
             colormap[in_y,in_x] = (0,255,255)
-            space_colorer(boolmap,visitmap,colormap,in_x,in_y-1)
-            space_colorer(boolmap,visitmap,colormap,in_x+1,in_y)
-            space_colorer(boolmap,visitmap,colormap,in_x,in_y+1)
-            space_colorer(boolmap,visitmap,colormap,in_x-1,in_y)
+            counter += space_colorer(boolmap,visitmap,colormap,in_x,in_y-1)
+            counter += space_colorer(boolmap,visitmap,colormap,in_x+1,in_y)
+            counter += space_colorer(boolmap,visitmap,colormap,in_x,in_y+1)
+            counter += space_colorer(boolmap,visitmap,colormap,in_x-1,in_y)
+            return counter+1
+        else:
+            return 0
+    else :
+        return 0
 
 """新版優化數值 白色取值幾乎完整 藍色與背景可以取得邊緣以外的大多訊號 並新增 back_mask 取樣範圍"""
 BGRrange = [([0,40,0], [255,255,112]),
@@ -158,35 +160,18 @@ if key == 115:
 if key == 111:
     cv2.imwrite("output.jpg",src_pic)
 '''
-
-'''
-更改結果輸出為output.jpg
-'''
 cv2.imwrite("output.jpg",src_pic)
 cv2.destroyAllWindows()
-'''
-以上基礎作業完成
-'''
 
-'''
-以白色區域的面積大小大致區分眼睛與其他部分
-'''
-'''建立眼部遮罩'''
 eye_mask = np.zeros([pic_h,pic_w], dtype="uint8")
 for ih in range(0,pic_h):
     for iw in range(0,pic_w):
-        """尋找每一個未被使用過的白色像素作為起點 進行遞迴搜尋"""
         if white_mask[ih,iw] and not vis_mask[ih,iw]:
-            """計算出面積大小"""
             AreaNum = space_counter(white_mask,vis_mask,iw,ih)
-            """輸出每個白色區塊的大小和起點"""
             print(format("%d(%d,%d)"%(AreaNum,iw,ih)))
-            
-            """眼部主要介於蔗面積之中 但唯一有一個例外(被多偵測以為是眼睛) 但這例外形狀和大小都幾乎無法用單一算法排除"""
             if 203 < AreaNum < 320 :
-                """利用地回搜尋將整個區塊的眼部著色"""
                 space_colorer(white_mask,eye_mask,src_pic,iw,ih)
-""" 用圖片表示所有用到的MASK方便比對"""
+
 cv2.imshow("white_mask", white_mask)
 cv2.imshow("eye_mask", eye_mask)
 cv2.imshow("output", src_pic)

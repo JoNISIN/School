@@ -5,11 +5,35 @@ Created on Wed Oct 18 04:27:33 2017
 @author: 傳衛
 """
 
+"""
+10/18 HW#02
+1. 濾色: 
+>  皮膚 (10%)  #show 出 mask＋濾出後的圖即可
+>  白色 (10%)  #show 出 mask＋濾出後的圖即可
+>  背景 (20%)  #show 出 mask＋濾出後的圖即可
+2. 改色
+> 皮膚變"亮" (15%)
+> 白變紅 (15%)
+> 背景變白 (15%)
+> 三張整合起來  (10%)
+>加分：將小精靈的眼睛改成黃色，但帽子和褲子還是紅色（20%）#難題
+3. 美觀 
+>沒雜訊, 線條乾淨  (5%)
+(共120%)
+input圖:  Blue.jpg
+output圖（存）: 整合改色後final的圖.jpg＋(加分題圖.jpg)＋程式.py
+
+p.s. 用python寫（盡量用python3）
+繳交期限 10/25 中午12:00
+"""
+
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 import sys
-
+"""
+鬆綁預設遞迴限制
+"""
 sys.setrecursionlimit(10000000)
 
 """設置原始圖片名稱"""
@@ -52,12 +76,22 @@ def space_colorer(boolmap,visitmap,colormap,in_x,in_y):
             space_colorer(boolmap,visitmap,colormap,in_x,in_y+1)
             space_colorer(boolmap,visitmap,colormap,in_x-1,in_y)
 
-"""新版優化數值 白色取值幾乎完整 藍色與背景可以取得邊緣以外的大多訊號 並新增 back_mask 取樣範圍"""
+"""
+3. 美觀 
+>沒雜訊, 線條乾淨  (5%)
+新版優化數值 白色取值幾乎完整 藍色與背景可以取得邊緣以外的大多訊號 並新增 back_mask 取樣範圍
+"""
 BGRrange = [([0,40,0], [255,255,112]),
              ([190,190,180], [255,255,255]),
              ([0,40,0], [185,135,112])]
 
-"""迴圈採樣 利用inRange函數 分別取出 藍色遮罩 與  白色遮罩  和  背景遮罩"""
+"""
+1. 濾色: 
+>  皮膚 (10%)
+>  白色 (10%)
+>  背景 (20%)
+迴圈採樣 利用inRange函數 分別取出像素位置並建立 藍色遮罩 與  白色遮罩  和  背景遮罩
+"""
 index = 0
 for (lower, upper) in BGRrange:
     
@@ -73,8 +107,11 @@ for (lower, upper) in BGRrange:
     index+=1
 
 '''
+3. 美觀 
+>沒雜訊, 線條乾淨  (5%)
 將back_mask 再做處理
 使用類濾波遮罩 建立過濾雜訊的bg_mask
+一次濾波就可以過濾掉絕大多數的雜訊
 '''
 bg_mask = np.zeros([pic_h,pic_w], dtype="uint8")
 for ih in range(0,pic_h):
@@ -96,12 +133,36 @@ for ih in range(0,pic_h):
         else :
             bg_mask[ih,iw] = 255
             
-'''測試遮罩模樣   '''             
-cv2.imshow("output-bg", bg_mask)
-cv2.imshow("output-bk", back_mask)
+"""
+利用藍色遮罩與背景遮罩的XOR可以得到皮膚遮罩
+(但此程式並未使用此遮罩  僅為作業標準方便而使用)
+"""
+skin_mask =  cv2.bitwise_xor(blue_mask,bg_mask)
+            
+'''
+1. 濾色: 
+>  皮膚 (10%)  #show 出 mask＋濾出後的圖即可
+>  白色 (10%)  #show 出 mask＋濾出後的圖即可
+>  背景 (20%)  #show 出 mask＋濾出後的圖即可
+測試遮罩模樣
+'''             
+"""
+>  白色 (10%)  #show 出 mask＋濾出後的圖即可
+"""
+cv2.imshow("white-mask", white_mask)
+cv2.imshow("white-mask-output", cv2.bitwise_and(src_pic, src_pic, mask=white_mask))
+"""
+>  皮膚 (10%)  #show 出 mask＋濾出後的圖即可
+"""
+cv2.imshow("blueSkin-mask",skin_mask )
+cv2.imshow("blueSkin-mask-output", cv2.bitwise_and(src_pic, src_pic, mask=skin_mask))
+"""
+>  背景 (20%)  #show 出 mask＋濾出後的圖即可
+"""
+cv2.imshow("deepBlueBackground-mask", bg_mask)
+cv2.imshow("deepBlueBackground-mask-output", cv2.bitwise_and(src_pic, src_pic, mask=bg_mask))
 key = cv2.waitKey(0)
 cv2.destroyAllWindows()
-cv2.imwrite("mask-bg.jpg",bg_mask)
 
 
 """設置亮度線性變化  rate比率變化  plus固定變化"""
@@ -109,19 +170,39 @@ bright_rate = 1
 bright_plus = 70
 
 """
+2. 改色
+> 皮膚變"亮" (15%)
+> 白變紅 (15%)
+> 背景變白 (15%)
+> 三張整合起來  (10%)
+
 以遮罩(mask)作為判斷依據 迴圈對判斷為true的向速做出變化
 對藍色做出亮度變化(預設比率增加)
 對白色做出轉變為紅色的變化
+
+註:(> 三張整合起來  (10%)):
+    當初實作時為了降低時間與空間複雜度沒有再做先分開再疊合
+    而是直接透過遮罩的布林含意直接疊回原圖進行操作
+    在發布成作業之前便已經完成了此項作業也經過老師的同意
+    效果也沒有改變請多多包涵QAQ
 """
 for ih in range(0,pic_h):
     for iw in range(0,pic_w):
-                
+        """
+        > 白變紅 (15%)
+        此elif為對於部分灰階雜訊的處理方式
+        """
         if white_mask[ih,iw] :
             src_pic[ih,iw,0:2] = src_pic[ih,iw,0:2]/10
-            
         elif abs(int(src_pic[ih,iw,0])- src_pic[ih,iw,1]) < 20 and abs(int(src_pic[ih,iw,0])- src_pic[ih,iw,2]) < 20 :
             src_pic[ih,iw,0:2] = src_pic[ih,iw,0:2]/2
             
+        """
+        > 皮膚變"亮" (15%)
+        > 背景變白 (15%)
+        先使用藍色遮罩免去額外的處理
+        再透過背景遮罩的if...else...分開兩種不同的藍色區域做出相應變換
+        """
         if blue_mask[ih,iw] :
             if ih+1 < pic_h and iw+1 < pic_w :
                 ''' 
@@ -142,11 +223,10 @@ for ih in range(0,pic_h):
                             c = 255
                         src_pic[ih,iw,i] = c
 """
-顯示圖片
+顯示圖片並輸出
 按s儲存並覆蓋原圖(已被註解)
-按o儲存並另外輸出
-其他按鍵不動作
-最後關閉所有視窗
+按o儲存並另外輸出(已被註解)
+所以現在只會直接儲存
 """
 cv2.imshow("output", src_pic)
 key = cv2.waitKey(0)
@@ -159,17 +239,23 @@ if key == 111:
     cv2.imwrite("output.jpg",src_pic)
 '''
 
-'''
+"""
+output圖（存）: 整合改色後final的圖.jpg
 更改結果輸出為output.jpg
-'''
+"""
 cv2.imwrite("output.jpg",src_pic)
 cv2.destroyAllWindows()
+
+
 '''
 以上基礎作業完成
 '''
 
+"""
+>加分：將小精靈的眼睛改成黃色，但帽子和褲子還是紅色（20%）#難題
+"""
 '''
-以白色區域的面積大小大致區分眼睛與其他部分
+此程式算法以白色區域的面積大小大致區分眼睛與其他部分
 '''
 '''建立眼部遮罩'''
 eye_mask = np.zeros([pic_h,pic_w], dtype="uint8")
@@ -179,17 +265,25 @@ for ih in range(0,pic_h):
         if white_mask[ih,iw] and not vis_mask[ih,iw]:
             """計算出面積大小"""
             AreaNum = space_counter(white_mask,vis_mask,iw,ih)
-            """輸出每個白色區塊的大小和起點"""
+            """輸出每個白色區塊的大小和起點(測試用)
             print(format("%d(%d,%d)"%(AreaNum,iw,ih)))
+            """
             
             """眼部主要介於蔗面積之中 但唯一有一個例外(被多偵測以為是眼睛) 但這例外形狀和大小都幾乎無法用單一算法排除"""
             if 203 < AreaNum < 320 :
                 """利用地回搜尋將整個區塊的眼部著色"""
                 space_colorer(white_mask,eye_mask,src_pic,iw,ih)
-""" 用圖片表示所有用到的MASK方便比對"""
+
+""" 用圖片表示所有用到的MASK方便比對(測試用)
 cv2.imshow("white_mask", white_mask)
 cv2.imshow("eye_mask", eye_mask)
-cv2.imshow("output", src_pic)
-cv2.imwrite("output-plus.jpg",src_pic)
+"""
+cv2.imshow("output-plus", src_pic)
 key = cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+"""
+output圖（存）: 加分題圖.jpg
+儲存為output-plus.jpg
+"""
+cv2.imwrite("output-plus.jpg",src_pic)
